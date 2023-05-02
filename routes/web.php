@@ -26,7 +26,7 @@ Route::get('/login', function (Request $request) {
         "client_id" => "99118fdc-6765-404c-8dc6-08c37146e121",
         "redirect_url" => "http://127.0.0.1:8080/callback",
         "response_type" => "code",
-        "scope" => "",
+        "scope" => "view-user",
         "state" => $state,
     ]);
     return redirect("http://127.0.0.1:8000/oauth/authorize?" . $query);
