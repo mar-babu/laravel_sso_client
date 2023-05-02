@@ -47,7 +47,7 @@ class SSOController extends Controller
         $accessToken = $request->session()->get('access_token');
         $response = Http::withHeaders([
             'Accept' => 'application/json',
-            'Authorization' => 'Bearer' . $accessToken
+            'Authorization' => 'Bearer'.$accessToken
         ])->get('http://127.0.0.1:8000/api/user');
         return $response->json();
 
