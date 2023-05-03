@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Support\Facades\Http;
 
 class User extends Authenticatable
 {
@@ -41,4 +42,15 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+    public function logoutFromSSOServer()
+    {
+        //send a revoke tokens requests to SSO Server
+        $accessToken = session()->get('access_token');
+        $response = Http::withHeaders([
+            'Accept' => 'application/json',
+            'Authorization' => 'Bearer '.$accessToken
+        ])->get(config('auth.sso_host') . '/api/logmeout');
+//        dd($response);
+    }
 }

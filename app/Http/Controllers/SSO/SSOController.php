@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use \Illuminate\Support\Facades\Http;
+use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 
 class SSOController extends Controller
 {
@@ -13,13 +15,13 @@ class SSOController extends Controller
     {
         session()->put("state", $state = Str::random(40));
         $query = http_build_query([
-            "client_id" => "9913ab72-debb-41bd-b3fd-37d8016d00b5",
-            "redirect_uri" => "http://127.0.0.1:8080/auth/callback",
+            "client_id" => config("auth.client_id"),
+            "redirect_uri" => config("auth.callback"),
             "response_type" => "code",
             "scope" => "view-user",
             "state" => $state,
         ]);
-        return redirect("http://127.0.0.1:8000/oauth/authorize?" . $query);
+        return redirect(config("auth.sso_host") .  "/oauth/authorize?" . $query);
 
     }
     public function getCallback(Request $request)
@@ -29,12 +31,12 @@ class SSOController extends Controller
         throw_unless(strlen($state) > 0 && $state === $request->state, InvalidArgumentException::class);
 
         $response = Http::asForm()->post(
-            "http://127.0.0.1:8000/oauth/token",
+            config("auth.sso_host") .  "/oauth/token",
             [
                 "grant_type" => "authorization_code",
-                "client_id" => "9913ab72-debb-41bd-b3fd-37d8016d00b5",
-                "client_secret" => "4ks5wV6X5W2FXIW0ZBFopkjLQsWkkQHE7fCGYCSi",
-                "redirect_uri" => "http://127.0.0.1:8080/auth/callback",
+                "client_id" => config("auth.client_id"),
+                "client_secret" => config("auth.client_secret"),
+                "redirect_uri" => config("auth.callback"),
                 "code" => $request->code
 
             ]);
@@ -48,8 +50,23 @@ class SSOController extends Controller
         $response = Http::withHeaders([
             'Accept' => 'application/json',
             'Authorization' => 'Bearer '.$accessToken
-        ])->get('http://127.0.0.1:8000/api/user');
-        return $response->json();
+        ])->get(config("auth.sso_host") .  "/api/user");
+        $userArray = $response->json();
+        try {
+            $email = $userArray['email'];
+        } catch (\Throwable $th) {
+            return redirect("login")->withError("Failed to get login information! Try again.");
+        }
+        $user = User::where("email", $email)->first();
+        if (!$user) {
+            $user = new User;
+            $user->name = $userArray['name'];
+            $user->email = $userArray['email'];
+            $user->email_verified_at = $userArray['email_verified_at'];
+            $user->save();
+        }
+        Auth::login($user);
+        return redirect(route('home'));
 
     }
 
