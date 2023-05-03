@@ -11,10 +11,10 @@ class SSOController extends Controller
 {
     public function getLogin(Request $request)
     {
-        $request->session()->put("state", $state = Str::random(40));
+        session()->put("state", $state = Str::random(40));
         $query = http_build_query([
-            "client_id" => "99118fdc-6765-404c-8dc6-08c37146e121",
-            "redirect_url" => "http://127.0.0.1:8080/callback",
+            "client_id" => "9913ab72-debb-41bd-b3fd-37d8016d00b5",
+            "redirect_uri" => "http://127.0.0.1:8080/auth/callback",
             "response_type" => "code",
             "scope" => "view-user",
             "state" => $state,
@@ -24,30 +24,30 @@ class SSOController extends Controller
     }
     public function getCallback(Request $request)
     {
-        $state = $request->session()->pull("state");
+        $state = session()->pull("state");
 
         throw_unless(strlen($state) > 0 && $state === $request->state, InvalidArgumentException::class);
 
         $response = Http::asForm()->post(
-            "http://127.0.0.1:8000/oauth/token/",
+            "http://127.0.0.1:8000/oauth/token",
             [
                 "grant_type" => "authorization_code",
-                "client_id" => "99118fdc-6765-404c-8dc6-08c37146e121",
-                "client_secret" => "hHQ3hGYpgAQEwZvVIYieG8f2s3s3Bteq8AOQjd14",
-                "redirect_url" => "http://127.0.0.1:8080/callback",
+                "client_id" => "9913ab72-debb-41bd-b3fd-37d8016d00b5",
+                "client_secret" => "4ks5wV6X5W2FXIW0ZBFopkjLQsWkkQHE7fCGYCSi",
+                "redirect_uri" => "http://127.0.0.1:8080/auth/callback",
                 "code" => $request->code
 
             ]);
-        $request->session()->put($response->json());
+        session()->put($response->json());
         return redirect(route('sso.connect'));
 
     }
     public function connectUser(Request $request)
     {
-        $accessToken = $request->session()->get('access_token');
+        $accessToken = session()->get('access_token');
         $response = Http::withHeaders([
             'Accept' => 'application/json',
-            'Authorization' => 'Bearer'.$accessToken
+            'Authorization' => 'Bearer '.$accessToken
         ])->get('http://127.0.0.1:8000/api/user');
         return $response->json();
 
